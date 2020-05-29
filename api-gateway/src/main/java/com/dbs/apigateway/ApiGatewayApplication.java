@@ -2,24 +2,19 @@ package com.dbs.apigateway;
 
 import java.time.LocalDate;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
+import org.springframework.cloud.security.oauth2.gateway.TokenRelayGatewayFilterFactory;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import lombok.Data;
-import lombok.extern.log4j.Log4j2;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 
@@ -33,14 +28,14 @@ public class ApiGatewayApplication {
 	
 	
 	@Bean
-    public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
-        return builder.routes()
-                .route("car-service", r -> r.path("/cars")
-                		.filters(f -> f.hystrix(c -> c.setName("CarsFallback")
-                				.setFallbackUri("forward:/cars-fallback")))
-                        .uri("lb://car-service"))
-                .build();
-    }
+	public RouteLocator customRouteLocator(RouteLocatorBuilder builder,
+	                                       TokenRelayGatewayFilterFactory filterFactory) {
+	    return builder.routes()
+	            .route("car-service", r -> r.path("/cars")
+	                    .filters(f -> f.filter(filterFactory.apply()))
+	                    .uri("lb://car-service/cars"))
+	            .build();
+	}
 	
 	@Bean
 	@LoadBalanced
